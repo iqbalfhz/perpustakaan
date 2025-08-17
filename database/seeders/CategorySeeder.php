@@ -2,16 +2,16 @@
 
 namespace Database\Seeders;
 
-use App\Models\Book;
+use App\Models\Category;
 use Illuminate\Database\Seeder;
 
-class BookSeeder extends Seeder
+class CategorySeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        Book::factory()->count(5)->create();
+        Category::factory()->count(5)->create();
     }
 }

@@ -1,5 +1,30 @@
+created:
+    - database/factories/CategoryFactory.php
+    - database/factories/BookFactory.php
+    - database/factories/MemberFactory.php
+    - database/factories/LoanFactory.php
+    - database/factories/FineFactory.php
+    - database/migrations/2025_08_17_104924_create_categories_table.php
+    - database/migrations/2025_08_17_104925_create_books_table.php
+    - database/migrations/2025_08_17_104926_create_members_table.php
+    - database/migrations/2025_08_17_104927_create_loans_table.php
+    - database/migrations/2025_08_17_104928_create_fines_table.php
+    - app/Models/Category.php
+    - app/Models/Book.php
+    - app/Models/Member.php
+    - app/Models/Loan.php
+    - app/Models/Fine.php
+    - database/seeders/CategorySeeder.php
+    - database/seeders/BookSeeder.php
+    - database/seeders/MemberSeeder.php
+    - database/seeders/LoanSeeder.php
+    - database/seeders/FineSeeder.php
 models:
-    Book: { title: string, author: string, description: text }
+    Book: { category_id: 'id foreign', isbn: 'string:unique', code: 'string:unique', title: 'string:150', author: 'string:100', publisher: 'string:100', year: year, stock: integer, replacement_cost: 'decimal:10,2', relationships: { belongsTo: Category, hasMany: Loan } }
     Contact: { name: string }
     Post: { title: string, content: text }
     User: { name: string, email: string, email_verified_at: 'timestamp nullable', password: 'string nullable', remember_token: 'string:100 nullable', avatar_url: 'string nullable' }
+    Category: { name: 'string:100', slug: 'string:100', relationships: { hasMany: Book } }
+    Member: { user_id: 'id foreign:users', member_code: 'string:unique', phone: 'string:20', address: text, relationships: { belongsTo: User, hasMany: Loan } }
+    Loan: { member_id: 'id foreign:members', book_id: 'id foreign:books', loaned_at: datetime, due_at: datetime, returned_at: 'datetime:nullable', status: 'enum:requested,borrowed,returned,lost,damaged', relationships: { belongsTo: 'Member, Book', hasMany: Fine } }
+    Fine: { loan_id: 'id foreign:loans', type: 'enum:late,lost,damaged', amount: 'decimal:10,2', paid_at: 'datetime:nullable', notes: 'text:nullable', relationships: { belongsTo: Loan } }

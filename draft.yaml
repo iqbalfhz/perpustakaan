@@ -1,5 +1,51 @@
 models:
-  # ...
+  Category:
+    name: string:100
+    slug: string:100
+    relationships:
+      hasMany: Book
 
-controllers:
-  # ...
+  Book:
+    category_id: id foreign
+    isbn: string:unique
+    code: string:unique
+    title: string:150
+    author: string:100
+    publisher: string:100
+    year: year
+    stock: integer
+    replacement_cost: decimal:10,2
+    relationships:
+      belongsTo: Category
+      hasMany: Loan
+
+  Member:
+    user_id: id foreign:users
+    member_code: string:unique
+    phone: string:20
+    address: text
+    relationships:
+      belongsTo: User
+      hasMany: Loan
+
+  Loan:
+    member_id: id foreign:members
+    book_id: id foreign:books
+    loaned_at: datetime
+    due_at: datetime
+    returned_at: datetime:nullable
+    status: enum:requested,borrowed,returned,lost,damaged
+    relationships:
+      belongsTo: Member, Book
+      hasMany: Fine
+
+  Fine:
+    loan_id: id foreign:loans
+    type: enum:late,lost,damaged
+    amount: decimal:10,2
+    paid_at: datetime:nullable
+    notes: text:nullable
+    relationships:
+      belongsTo: Loan
+
+seeders: Category, Book, Member, Loan, Fine

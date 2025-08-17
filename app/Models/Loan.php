@@ -10,6 +10,21 @@ class Loan extends Model
 {
     use HasFactory;
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::updating(function ($loan) {
+            if (
+                $loan->isDirty('status') &&
+                $loan->status === 'dikembalikan' &&
+                $loan->book
+            ) {
+                $loan->book->increment('stock');
+            }
+        });
+    }
+
     protected $fillable = [
         'member_id',
         'book_id',
@@ -17,6 +32,7 @@ class Loan extends Model
         'due_at',
         'returned_at',
         'status',
+        'book_condition',
     ];
 
     protected $casts = [
@@ -26,6 +42,7 @@ class Loan extends Model
         'loaned_at' => 'datetime',
         'due_at' => 'datetime',
         'returned_at' => 'datetime',
+        'book_condition' => 'string',
     ];
 
     public function member(): BelongsTo

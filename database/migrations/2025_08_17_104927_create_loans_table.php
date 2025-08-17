@@ -20,7 +20,8 @@ return new class extends Migration
             $table->dateTime('loaned_at');
             $table->dateTime('due_at');
             $table->dateTime('returned_at')->nullable();
-            $table->enum('status', ["requested","borrowed","returned","lost","damaged"]);
+            $table->enum('status', ["dipinjam","hilang","rusak"]);
+            $table->enum('book_condition', ['normal', 'rusak', 'hilang'])->default('normal');
             $table->timestamps();
         });
 

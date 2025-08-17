@@ -10,6 +10,14 @@ class CreateLoan extends CreateRecord
     protected static string $resource = LoanResource::class;
     protected static bool $canCreateAnother = false;
 
+    public function afterCreate(): void
+    {
+        $loan = $this->record;
+        if ($loan && $loan->book) {
+            $loan->book->decrement('stock');
+        }
+    }
+
     public function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

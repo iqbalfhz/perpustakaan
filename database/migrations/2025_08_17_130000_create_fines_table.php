@@ -11,19 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::disableForeignKeyConstraints();
-
         Schema::create('fines', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('loan_id')->constrained();
-            $table->enum('type', ["late","lost","damaged"]);
-            $table->decimal('amount', 10, 2);
-            $table->dateTime('paid_at')->nullable();
-            $table->text('notes')->nullable();
+            $table->foreignId('loan_id')->constrained('loans')->onDelete('cascade');
+            $table->enum('jenis_denda', ['terlambat', 'hilang', 'rusak']);
+            $table->decimal('jumlah', 10, 2);
+            $table->enum('status', ['belum dibayar', 'sudah dibayar'])->default('belum dibayar');
             $table->timestamps();
         });
-
-        Schema::enableForeignKeyConstraints();
     }
 
     /**

@@ -25,7 +25,6 @@ class Book extends Model
         'publisher',
         'year',
         'stock',
-        'replacement_cost',
     ];
 
     /**

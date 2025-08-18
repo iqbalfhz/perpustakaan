@@ -65,10 +65,7 @@ class BookResource extends Resource
                     ->default(0)
                     ->required(),
 
-                Forms\Components\TextInput::make('replacement_cost')
-                    ->label('Biaya Ganti (Rp)')
-                    ->numeric()
-                    ->default(0),
+                
             ]);
     }
 
@@ -106,9 +103,7 @@ class BookResource extends Resource
                     ->label('Stok')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('replacement_cost')
-                    ->label('Biaya Ganti')
-                    ->money('IDR'),
+                
             ])
             ->filters([
                 //

@@ -23,7 +23,6 @@ return new class extends Migration
             $table->string('publisher', 100);
             $table->year('year');
             $table->integer('stock');
-            $table->decimal('replacement_cost', 10, 2);
             $table->timestamps();
         });
 

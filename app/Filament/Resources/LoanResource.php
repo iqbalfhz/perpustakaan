@@ -28,9 +28,31 @@ class LoanResource extends Resource
                     ->searchable()
                     ->required(),
                 Forms\Components\Select::make('book_id')
-                    ->relationship('book', 'title')
                     ->label('Buku')
-                    ->required(),
+                    ->options(function () {
+                        return \App\Models\Book::where('stock', '>', 0)->pluck('title', 'id');
+                    })
+                    ->searchable()
+                    ->required()
+                    ->placeholder('Pilih buku (stok habis tidak tampil)')
+                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                        $memberId = $get('member_id');
+                        $bookId = $state;
+                        if ($memberId && $bookId) {
+                            $exists = \App\Models\Loan::where('member_id', $memberId)
+                                ->where('book_id', $bookId)
+                                ->where('status', 'dipinjam')
+                                ->exists();
+                            if ($exists) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Peminjaman Tidak Valid')
+                                    ->body('User sudah meminjam buku ini dan belum dikembalikan.')
+                                    ->danger()
+                                    ->send();
+                                $set('book_id', null);
+                            }
+                        }
+                    }),
                 Forms\Components\DatePicker::make('loaned_at')
                     ->label('Tanggal Pinjam')
                     ->required()
@@ -48,26 +70,6 @@ class LoanResource extends Resource
                     ->reactive()
                     ->readOnly(),
                 // Tanggal Pengembalian dihapus dari form, akan diisi otomatis saat pengembalian di menu denda/biaya ganti
-                Forms\Components\Select::make('status')
-                    ->label('Status')
-                    ->options([
-                        'dipinjam' => 'Dipinjam',
-                        'normal' => 'Normal',
-                        'hilang' => 'Hilang',
-                        'rusak' => 'Rusak',
-                    ])
-                    ->default('dipinjam')
-                    ->required(),
-
-                Forms\Components\Select::make('book_condition')
-                    ->label('Kondisi Buku Saat Dikembalikan')
-                    ->options([
-                        'normal' => 'Normal',
-                        'rusak' => 'Rusak',
-                        'hilang' => 'Hilang',
-                    ])
-                    ->required()
-                    ->visible(fn ($get) => $get('status') !== 'dipinjam'),
             ]);
     }
 

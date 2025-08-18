@@ -10,9 +10,11 @@ class CreateLoan extends CreateRecord
     protected static string $resource = LoanResource::class;
     protected static bool $canCreateAnother = false;
 
-    public function afterCreate(): void
+
+    public function mutateFormDataBeforeCreate(array $data): array
     {
-    // Pengurangan stok hanya dilakukan di event creating pada model Loan
+        $data['status'] = 'dipinjam';
+        return $data;
     }
 
     public function getRedirectUrl(): string

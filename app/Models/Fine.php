@@ -17,10 +17,9 @@ class Fine extends Model
      */
     protected $fillable = [
         'loan_id',
-        'type',
-        'amount',
-        'paid_at',
-        'notes',
+        'jenis_denda',
+        'jumlah',
+        'status',
     ];
 
     /**
@@ -31,8 +30,7 @@ class Fine extends Model
     protected $casts = [
         'id' => 'integer',
         'loan_id' => 'integer',
-        'amount' => 'decimal:2',
-        'paid_at' => 'datetime',
+        'jumlah' => 'decimal:2',
     ];
 
     public function loan(): BelongsTo

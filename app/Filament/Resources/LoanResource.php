@@ -52,6 +52,7 @@ class LoanResource extends Resource
                     ->label('Status')
                     ->options([
                         'dipinjam' => 'Dipinjam',
+                        'normal' => 'Normal',
                         'hilang' => 'Hilang',
                         'rusak' => 'Rusak',
                     ])
@@ -82,13 +83,22 @@ class LoanResource extends Resource
                 Tables\Columns\TextColumn::make('status')->label('Status')
                     ->badge()
                     ->colors([
-                        'success' => 'dipinjam',
+                        'success' => ['dipinjam', 'normal'],
                         'danger' => ['hilang', 'rusak'],
                     ]),
                 Tables\Columns\TextColumn::make('denda')->label('Denda')->getStateUsing(function ($record) {
+                    // Denda keterlambatan
                     if ($record->returned_at && $record->returned_at > $record->due_at) {
                         $daysLate = \Carbon\Carbon::parse($record->returned_at)->diffInDays(\Carbon\Carbon::parse($record->due_at));
                         return 'Rp ' . number_format($daysLate * 1000, 0, ',', '.');
+                    }
+                    // Denda rusak/hilang
+                    $fine = \App\Models\Fine::where('loan_id', $record->id)
+                        ->whereIn('jenis_denda', ['rusak', 'hilang'])
+                        ->orderByDesc('id')
+                        ->first();
+                    if ($fine) {
+                        return 'Rp ' . number_format($fine->jumlah, 0, ',', '.') . ' (' . ucfirst($fine->jenis_denda) . ')';
                     }
                     return '-';
                 }),
@@ -114,9 +124,29 @@ class LoanResource extends Resource
                             if ($record->book) {
                                 $record->book->increment('stock');
                             }
-                            
+                            $record->status = 'normal';
+                            \Filament\Notifications\Notification::make()
+                                ->title('Pengembalian Berhasil')
+                                ->body('Buku dikembalikan dalam kondisi normal. Tidak ada denda.')
+                                ->success()
+                                ->send();
                         } else {
                             $record->status = $data['book_condition'];
+                            $fineAmount = $data['book_condition'] === 'rusak' ? 50000 : ($data['book_condition'] === 'hilang' ? 150000 : 0);
+                            $fineType = $data['book_condition'];
+                            if ($fineAmount > 0) {
+                                \App\Models\Fine::create([
+                                    'loan_id' => $record->id,
+                                    'jenis_denda' => $fineType,
+                                    'jumlah' => $fineAmount,
+                                    'status' => 'belum dibayar',
+                                ]);
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Pengembalian Berhasil')
+                                    ->body('Buku dikembalikan dalam kondisi ' . $fineType . '. Denda: Rp ' . number_format($fineAmount, 0, ',', '.'))
+                                    ->warning()
+                                    ->send();
+                            }
                         }
                         $record->save();
                     })

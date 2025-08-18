@@ -23,10 +23,9 @@ class FineFactory extends Factory
     {
         return [
             'loan_id' => Loan::factory(),
-            'type' => fake()->randomElement(["late","lost","damaged"]),
-            'amount' => fake()->randomFloat(2, 0, 99999999.99),
-            'paid_at' => fake()->dateTime(),
-            'notes' => fake()->text(),
+            'jenis_denda' => fake()->randomElement(['terlambat','hilang','rusak']),
+            'jumlah' => fake()->randomFloat(2, 0, 99999999.99),
+            'status' => fake()->randomElement(['belum dibayar','sudah dibayar']),
         ];
     }
 }

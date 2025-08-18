@@ -51,13 +51,11 @@ class LoanResource extends Resource
                 Forms\Components\Select::make('status')
                     ->label('Status')
                     ->options([
-                        'requested' => 'Diminta',
-                        'borrowed' => 'Dipinjam',
-                        'returned' => 'Dikembalikan',
-                        'lost' => 'Hilang',
-                        'damaged' => 'Rusak',
+                        'dipinjam' => 'Dipinjam',
+                        'hilang' => 'Hilang',
+                        'rusak' => 'Rusak',
                     ])
-                    ->default('borrowed')
+                    ->default('dipinjam')
                     ->required(),
 
                 Forms\Components\Select::make('book_condition')
@@ -68,7 +66,7 @@ class LoanResource extends Resource
                         'hilang' => 'Hilang',
                     ])
                     ->required()
-                    ->visible(fn ($get) => $get('status') === 'returned'),
+                    ->visible(fn ($get) => $get('status') !== 'dipinjam'),
             ]);
     }
 
@@ -81,7 +79,12 @@ class LoanResource extends Resource
                 Tables\Columns\TextColumn::make('loaned_at')->label('Tanggal Pinjam'),
                 Tables\Columns\TextColumn::make('due_at')->label('Tanggal Jatuh Tempo'),
                 Tables\Columns\TextColumn::make('returned_at')->label('Tanggal Pengembalian'),
-                Tables\Columns\TextColumn::make('status')->label('Status'),
+                Tables\Columns\TextColumn::make('status')->label('Status')
+                    ->badge()
+                    ->colors([
+                        'success' => 'dipinjam',
+                        'danger' => ['hilang', 'rusak'],
+                    ]),
                 Tables\Columns\TextColumn::make('denda')->label('Denda')->getStateUsing(function ($record) {
                     if ($record->returned_at && $record->returned_at > $record->due_at) {
                         $daysLate = \Carbon\Carbon::parse($record->returned_at)->diffInDays(\Carbon\Carbon::parse($record->due_at));
@@ -93,10 +96,28 @@ class LoanResource extends Resource
             ->actions([
                 Tables\Actions\Action::make('kembalikan')
                     ->label('Kembalikan Buku')
-                    ->visible(fn ($record) => $record->status === 'borrowed')
-                    ->action(function ($record) {
+                    ->visible(fn ($record) => $record->status === 'dipinjam' && (!($record->returned_at && $record->book_condition === 'normal')))
+                    ->form([
+                        Forms\Components\Select::make('book_condition')
+                            ->label('Kondisi Buku Saat Dikembalikan')
+                            ->options([
+                                'normal' => 'Normal',
+                                'rusak' => 'Rusak',
+                                'hilang' => 'Hilang',
+                            ])
+                            ->required(),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $record->book_condition = $data['book_condition'];
                         $record->returned_at = now();
-                        $record->status = 'returned';
+                        if ($data['book_condition'] === 'normal') {
+                            if ($record->book) {
+                                $record->book->increment('stock');
+                            }
+                            
+                        } else {
+                            $record->status = $data['book_condition'];
+                        }
                         $record->save();
                     })
                     ->requiresConfirmation()

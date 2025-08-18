@@ -12,10 +12,7 @@ class CreateLoan extends CreateRecord
 
     public function afterCreate(): void
     {
-        $loan = $this->record;
-        if ($loan && $loan->book) {
-            $loan->book->decrement('stock');
-        }
+    // Pengurangan stok hanya dilakukan di event creating pada model Loan
     }
 
     public function getRedirectUrl(): string

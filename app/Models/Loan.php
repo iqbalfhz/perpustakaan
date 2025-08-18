@@ -14,13 +14,10 @@ class Loan extends Model
     {
         parent::boot();
 
-        static::updating(function ($loan) {
-            if (
-                $loan->isDirty('status') &&
-                $loan->status === 'dikembalikan' &&
-                $loan->book
-            ) {
-                $loan->book->increment('stock');
+        static::creating(function ($loan) {
+            // Kurangi stok hanya sekali saat peminjaman dibuat
+            if ($loan->book && $loan->status === 'dipinjam') {
+                $loan->book->decrement('stock');
             }
         });
     }
@@ -30,7 +27,6 @@ class Loan extends Model
         'book_id',
         'loaned_at',
         'due_at',
-        'returned_at',
         'status',
         'book_condition',
     ];
@@ -41,7 +37,6 @@ class Loan extends Model
         'book_id' => 'integer',
         'loaned_at' => 'datetime',
         'due_at' => 'datetime',
-        'returned_at' => 'datetime',
         'book_condition' => 'string',
     ];
 

@@ -26,13 +26,13 @@ class LoanFactory extends Factory
     {
         $loaned = $this->faker->dateTimeBetween('-30 days', 'now');
         $due = (clone $loaned)->modify('+7 days');
-        $status = $this->faker->randomElement(["requested","borrowed","returned","lost","damaged"]);
+        $status = $this->faker->randomElement(['dipinjam', 'hilang', 'rusak']);
         return [
             'member_id' => Member::inRandomOrder()->first()?->id ?? Member::factory(),
             'book_id' => Book::inRandomOrder()->first()?->id ?? Book::factory(),
             'loaned_at' => $loaned->format('Y-m-d H:i:s'),
             'due_at' => $due->format('Y-m-d H:i:s'),
-            'returned_at' => in_array($status, ['returned','lost','damaged']) ? $this->faker->dateTimeBetween($loaned, 'now')->format('Y-m-d H:i:s') : null,
+            'returned_at' => in_array($status, ['hilang','rusak']) ? $this->faker->dateTimeBetween($loaned, 'now')->format('Y-m-d H:i:s') : null,
             'status' => $status,
         ];
     }

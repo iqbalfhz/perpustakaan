@@ -76,6 +76,7 @@ class LoanResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('id', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('member.name')->label('Anggota')->searchable(),
                 Tables\Columns\TextColumn::make('book.title')->label('Buku')->searchable(),
@@ -108,7 +109,7 @@ class LoanResource extends Resource
                                 ->warning()
                                 ->send();
                         }
-                        return 'Rp ' . number_format($lateFine, 0, ',', '.');
+                        return 'Rp ' . number_format($lateFine, 0, ',', '.') . ' (Terlambat)';
                     }
                     return '-';
                 }),
@@ -134,31 +135,41 @@ class LoanResource extends Resource
                             if ($record->book) {
                                 $record->book->increment('stock');
                             }
-                            // Hitung denda keterlambatan jika ada
+                            $daysLate = 0;
                             $lateFine = 0;
-                            $isLate = false;
-                            if ($record->returned_at && $record->due_at) {
-                                $daysLate = \Carbon\Carbon::parse($record->returned_at)->diffInDays(\Carbon\Carbon::parse($record->due_at), false);
-                                if ($daysLate < 0) {
-                                    $daysLate = 0;
-                                }
+                            if ($record->returned_at && $record->due_at && \Carbon\Carbon::parse($record->returned_at)->gt(\Carbon\Carbon::parse($record->due_at))) {
+                                $daysLate = \Carbon\Carbon::parse($record->returned_at)->diffInDays(\Carbon\Carbon::parse($record->due_at));
                                 $lateFine = $daysLate * 5000;
-                                if ($daysLate > 0) {
-                                    $isLate = true;
+                            }
+                            if ($daysLate > 0) {
+                                $record->status = 'terlambat';
+                                // Buat record Fine untuk keterlambatan jika belum ada
+                                $existingLateFine = \App\Models\Fine::where('loan_id', $record->id)
+                                    ->where('jenis_denda', 'terlambat')
+                                    ->first();
+                                if (!$existingLateFine && $lateFine > 0) {
+                                    \App\Models\Fine::create([
+                                        'loan_id' => $record->id,
+                                        'jenis_denda' => 'terlambat',
+                                        'jumlah' => $lateFine,
+                                        'status' => 'belum dibayar',
+                                    ]);
                                 }
-                            }
-                            $record->status = $isLate ? 'terlambat' : 'normal';
-                            $body = 'Buku dikembalikan dalam kondisi normal.';
-                            if ($lateFine > 0) {
-                                $body .= " Terlambat $daysLate hari. Denda keterlambatan: Rp " . number_format($lateFine, 0, ',', '.');
+                                $body = "Pengembalian buku terlambat $daysLate hari. Denda: Rp " . number_format($lateFine, 0, ',', '.');
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Pengembalian Terlambat')
+                                    ->body($body)
+                                    ->warning()
+                                    ->send();
                             } else {
-                                $body .= ' Tidak ada denda.';
+                                $record->status = 'normal';
+                                $body = 'Buku dikembalikan dalam kondisi normal. Tidak ada denda.';
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Pengembalian Berhasil')
+                                    ->body($body)
+                                    ->success()
+                                    ->send();
                             }
-                            \Filament\Notifications\Notification::make()
-                                ->title('Pengembalian Berhasil')
-                                ->body($body)
-                                ->success()
-                                ->send();
                         } else {
                             $record->status = $data['book_condition'];
                             $fineAmount = $data['book_condition'] === 'rusak' ? 50000 : ($data['book_condition'] === 'hilang' ? 150000 : 0);

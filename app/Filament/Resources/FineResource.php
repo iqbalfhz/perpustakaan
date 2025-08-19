@@ -54,10 +54,35 @@ class FineResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('loan.id')->label('ID Peminjaman')->searchable(),
-                Tables\Columns\TextColumn::make('jenis_denda')->label('Jenis Denda'),
+                Tables\Columns\TextColumn::make('loan.member.name')->label('Anggota')->searchable(),
+                Tables\Columns\TextColumn::make('loan.book.title')->label('Buku')->searchable(),
+                Tables\Columns\TextColumn::make('jenis_denda')->label('Jenis Denda')->badge()->colors([
+                    'warning' => 'terlambat',
+                    'danger' => ['hilang', 'rusak'],
+                ]),
                 Tables\Columns\TextColumn::make('jumlah')->label('Jumlah')->money('IDR'),
-                Tables\Columns\TextColumn::make('status')->label('Status'),
+                Tables\Columns\TextColumn::make('status')->label('Status')->badge()->colors([
+                    'success' => 'sudah dibayar',
+                    'danger' => 'belum dibayar',
+                ]),
                 Tables\Columns\TextColumn::make('created_at')->label('Tanggal')->date('d M Y'),
+                Tables\Columns\TextColumn::make('loan.id')->label('Detail Peminjaman')
+                    ->formatStateUsing(function($state) {
+                        if (!$state) return '-';
+                        return '<a href="/admin/loans/' . $state . '/edit" target="_blank">Lihat</a>';
+                    })
+                    ->html(),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('bayar')
+                    ->label('Tandai Sudah Dibayar')
+                    ->visible(fn($record) => $record->status === 'belum dibayar')
+                    ->action(function($record) {
+                        $record->status = 'sudah dibayar';
+                        $record->save();
+                    })
+                    ->color('success')
+                    ->requiresConfirmation(),
             ]);
     }
 

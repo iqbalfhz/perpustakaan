@@ -10,19 +10,7 @@ class CategorySeeder extends Seeder
 {
     public function run(): void
     {
-        $categories = [
-            'Teknologi',
-            'Kesehatan',
-            'Olahraga',
-            'Pendidikan',
-            'Hiburan'
-        ];
-
-        foreach ($categories as $name) {
-            Category::create([
-                'name' => $name,
-                'slug' => Str::slug($name) // slug mengikuti name
-            ]);
-        }
+    // Generate 5 random categories using the factory
+    Category::factory()->count(5)->create();
     }
 }

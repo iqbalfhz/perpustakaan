@@ -27,6 +27,7 @@ class Loan extends Model
         'book_id',
         'loaned_at',
         'due_at',
+        'returned_at',
         'status',
         'book_condition',
     ];
@@ -35,8 +36,9 @@ class Loan extends Model
         'id' => 'integer',
         'member_id' => 'integer',
         'book_id' => 'integer',
-        'loaned_at' => 'datetime',
-        'due_at' => 'datetime',
+        'loaned_at' => 'date',
+        'due_at' => 'date',
+        'returned_at' => 'date',
         'book_condition' => 'string',
     ];
 

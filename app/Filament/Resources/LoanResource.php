@@ -79,9 +79,9 @@ class LoanResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('member.name')->label('Anggota')->searchable(),
                 Tables\Columns\TextColumn::make('book.title')->label('Buku')->searchable(),
-                Tables\Columns\TextColumn::make('loaned_at')->label('Tanggal Pinjam'),
-                Tables\Columns\TextColumn::make('due_at')->label('Tanggal Jatuh Tempo'),
-                Tables\Columns\TextColumn::make('returned_at')->label('Tanggal Pengembalian'),
+                Tables\Columns\TextColumn::make('loaned_at')->label('Tanggal Pinjam')->date('Y-m-d'),
+                Tables\Columns\TextColumn::make('due_at')->label('Tanggal Jatuh Tempo')->date('Y-m-d'),
+                Tables\Columns\TextColumn::make('returned_at')->label('Tanggal Pengembalian')->date('Y-m-d'),
                 Tables\Columns\TextColumn::make('status')->label('Status')
                     ->badge()
                     ->colors([
@@ -89,18 +89,26 @@ class LoanResource extends Resource
                         'danger' => ['hilang', 'rusak'],
                     ]),
                 Tables\Columns\TextColumn::make('denda')->label('Denda')->getStateUsing(function ($record) {
-                    // Denda keterlambatan
-                    if ($record->returned_at && $record->returned_at > $record->due_at) {
-                        $daysLate = \Carbon\Carbon::parse($record->returned_at)->diffInDays(\Carbon\Carbon::parse($record->due_at));
-                        return 'Rp ' . number_format($daysLate * 1000, 0, ',', '.');
-                    }
-                    // Denda rusak/hilang
+                    // Denda rusak/hilang prioritas utama
                     $fine = \App\Models\Fine::where('loan_id', $record->id)
                         ->whereIn('jenis_denda', ['rusak', 'hilang'])
                         ->orderByDesc('id')
                         ->first();
                     if ($fine) {
                         return 'Rp ' . number_format($fine->jumlah, 0, ',', '.') . ' (' . ucfirst($fine->jenis_denda) . ')';
+                    }
+                    // Jika tidak rusak/hilang, baru cek keterlambatan
+                    if ($record->returned_at && $record->returned_at > $record->due_at) {
+                        $daysLate = \Carbon\Carbon::parse($record->returned_at)->diffInDays(\Carbon\Carbon::parse($record->due_at));
+                        $lateFine = $daysLate * 5000;
+                        if ($lateFine > 0) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Denda Keterlambatan')
+                                ->body('Pengembalian buku terlambat ' . $daysLate . ' hari. Denda: Rp ' . number_format($lateFine, 0, ',', '.'))
+                                ->warning()
+                                ->send();
+                        }
+                        return 'Rp ' . number_format($lateFine, 0, ',', '.');
                     }
                     return '-';
                 }),
@@ -126,10 +134,29 @@ class LoanResource extends Resource
                             if ($record->book) {
                                 $record->book->increment('stock');
                             }
-                            $record->status = 'normal';
+                            // Hitung denda keterlambatan jika ada
+                            $lateFine = 0;
+                            $isLate = false;
+                            if ($record->returned_at && $record->due_at) {
+                                $daysLate = \Carbon\Carbon::parse($record->returned_at)->diffInDays(\Carbon\Carbon::parse($record->due_at), false);
+                                if ($daysLate < 0) {
+                                    $daysLate = 0;
+                                }
+                                $lateFine = $daysLate * 5000;
+                                if ($daysLate > 0) {
+                                    $isLate = true;
+                                }
+                            }
+                            $record->status = $isLate ? 'terlambat' : 'normal';
+                            $body = 'Buku dikembalikan dalam kondisi normal.';
+                            if ($lateFine > 0) {
+                                $body .= " Terlambat $daysLate hari. Denda keterlambatan: Rp " . number_format($lateFine, 0, ',', '.');
+                            } else {
+                                $body .= ' Tidak ada denda.';
+                            }
                             \Filament\Notifications\Notification::make()
                                 ->title('Pengembalian Berhasil')
-                                ->body('Buku dikembalikan dalam kondisi normal. Tidak ada denda.')
+                                ->body($body)
                                 ->success()
                                 ->send();
                         } else {

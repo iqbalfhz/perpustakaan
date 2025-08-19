@@ -12,6 +12,15 @@ class BookSeeder extends Seeder
      */
     public function run(): void
     {
-        Book::factory()->count(5)->create();
+        // Ambil 5 kategori pertama
+        $categoryIds = \App\Models\Category::inRandomOrder()->limit(5)->pluck('id')->toArray();
+        if (empty($categoryIds)) {
+            throw new \Exception('Tidak ada kategori yang tersedia. Jalankan CategorySeeder terlebih dahulu.');
+        }
+        // Buat 30 buku, assign kategori random dari 5 kategori
+        Book::factory()->count(30)->make()->each(function ($book) use ($categoryIds) {
+            $book->category_id = $categoryIds[array_rand($categoryIds)];
+            $book->save();
+        });
     }
 }

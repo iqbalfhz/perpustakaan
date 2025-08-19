@@ -17,10 +17,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('member_id')->constrained();
             $table->foreignId('book_id')->constrained();
-            $table->dateTime('loaned_at');
-            $table->dateTime('due_at');
-            $table->dateTime('returned_at')->nullable();
-            $table->enum('status', ["dipinjam","hilang","rusak","normal"]);
+            $table->date('loaned_at');
+            $table->date('due_at');
+            $table->date('returned_at')->nullable();
+            $table->enum('status', ["dipinjam","hilang","rusak","normal", "terlambat"]);
             $table->enum('book_condition', ['normal', 'rusak', 'hilang'])->default('normal');
             $table->timestamps();
         });
